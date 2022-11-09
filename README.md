@@ -12,6 +12,10 @@ If you blocked all the china's ip including youself the way like I do, so it is 
 
 2. Configure job in your crontab.
 
+20221110
+---
+TRY 10 TIMES IF CURLING CLOUDFLARE FAILED.
+
 20221109
 ---
 1. TIMEOUT ADDED IN CURL IF FAILED ON CURLING TO CLOUDFLARE;
