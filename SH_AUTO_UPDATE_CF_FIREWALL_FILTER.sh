@@ -1,3 +1,4 @@
+#!/bin/bash
 
 for x in $(seq 4); do
 
@@ -39,8 +40,9 @@ done
 
 
 ##PUSH FAILURES ON ALL CURLING TO BARK;
-#if [ -z "$TMP_PUBLIC_IP_NOW" ]
-#then
+if [ -z "$TMP_PUBLIC_IP_NOW" ]
+then
+##echo "EMPTY AND CURL"
 #generate_post_data()
 #{
 #  cat <<EOF
@@ -55,14 +57,15 @@ done
 #EOF
 #}
 #
-#curl -X "POST" "https://your_bark_server/push" \
+#curl --connect-timeout 10 -X "POST" "https://your_bark_server/push" \
 #   -H 'Content-Type: application/json; charset=utf-8' \
 #   -d "$(generate_post_data)" &>/dev/null
 #
-#exit
+exit
 #
-#elif [[ ! $TMP_PUBLIC_IP_NOW =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]
-#then
+elif [[ ! $TMP_PUBLIC_IP_NOW =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]] && { [[ ! $TMP_PUBLIC_IP_NOW =~ ^([0-9a-fA-F]{0,4}:){1,7}[0-9a-fA-F]{0,4}$ ]] ;}
+then
+##echo "ALL CURLING FAILED AND CURLING BARK..."
 #generate_post_data()
 #{
 #  cat <<EOF
@@ -77,13 +80,13 @@ done
 #EOF
 #}
 #
-#curl -X "POST" "https://your_bark_server/push" \
+#curl --connect-timeout 10 -X "POST" "https://your_bark_server/push" \
 #   -H 'Content-Type: application/json; charset=utf-8' \
 #   -d "$(generate_post_data)" &>/dev/null
 #
-#exit
+exit
 #
-#fi
+fi
 
 
 
@@ -94,8 +97,16 @@ RuleID="your_rule_id"
 FilterID="your_filter_id"
 
 date >> /root/LOG_CURL_CF_RULE.log
-curl -s -X GET "https://api.cloudflare.com/client/v4/zones/$ZoneID/firewall/rules/$RuleID?id=$RuleID" -H "Content-Type: application/json" -H "X-Auth-Email: $Email" -H  "X-Auth-Key: $global_key" >> /root/LOG_CURL_CF_RULE.log
-echo "" >> /root/LOG_CURL_CF_RULE.log
+#echo "STARTED RETRIEVING CF..."
+curl --connect-timeout 5 -s -X GET "https://api.cloudflare.com/client/v4/zones/$ZoneID/firewall/rules/$RuleID?id=$RuleID" -H "Content-Type: application/json" -H "X-Auth-Email: $Email" -H  "X-Auth-Key: $global_key" >> /root/LOG_CURL_CF_RULE.log
+if [[ $? -ne 0 ]]
+  then
+    echo "CURL CF FAILED" >> /root/LOG_CURL_CF_RULE.log
+    echo "" >> /root/LOG_CURL_CF_RULE.log
+#    echo "FAILED RETRIEVING CF, LAST RECORD WILL BE USED..."
+#else
+#  echo "FINISHED RETRIEVING CF..."
+fi
 
 LAST_SUCCESS=$(grep '"success":' /root/LOG_CURL_CF_RULE.log | tail -1 | awk -F'[ ,]' 'END{print $4}')
 LAST_EXP=$(grep '"expression":' /root/LOG_CURL_CF_RULE.log | tail -1 | awk -F"[{}]" '{gsub(" ","\|"); print $2}')
@@ -113,6 +124,7 @@ if [[ $LAST_SUCCESS == true  ]]
 #        echo ""
         a=$(grep '"expression":' /root/LOG_CURL_CF_RULE.log | tail -1 | awk -F'[{}]' '{print $2}')
         b=$a" "$TMP_PUBLIC_IP_NOW
+
 generate_post_data()
 {
   cat <<EOF
@@ -122,8 +134,35 @@ generate_post_data()
 }
 EOF
 }
-        curl -s -X PUT "https://api.cloudflare.com/client/v4/zones/$ZoneID/filters/$FilterID" -H "Content-Type: application/json" -H "X-Auth-Email: $Email" -H  "X-Auth-Key: $global_key" --data "$(generate_post_data)"  &>/dev/null
-    fi
+#echo "CURLING TO ADD NEW PUBLIC IP ON CF..."
+curl --connect-timeout 10 -s -X PUT "https://api.cloudflare.com/client/v4/zones/$ZoneID/filters/$FilterID" -H "Content-Type: application/json" -H "X-Auth-Email: $Email" -H  "X-Auth-Key: $global_key" --data "$(generate_post_data)"  &>/dev/null
+if [[ $? -eq 0 ]]
+#  then
+#    echo "SUCCESSFULLY ADDED NEW PUBLIC IP TO CF FIREWALL RULE."
+#
+#echo "CURLING BARK OF NEW PUBLIC IP..."
+generate_post_data()
+{
+  cat <<EOF
+{
+   "title": "NEW PUBLIC IP ADDED ON CF",
+   "body": "ROUTER: $(cat /proc/sys/kernel/hostname)\\nTIME: $(date +"%Y %b %d %A %T")\\n$TMP_PUBLIC_IP_NOW",
+   "device_key": "your_device_key",
+   "badge": 1,
+   "sound": "chime.caf",
+   "icon": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSFdfqP9psOFmRSdxu5LoGG-g8ggRJCBnB6UQ&usqp=CAU"
+}
+EOF
+}
+
+curl --connect-timeout 10 -X "POST" "https://your_bark_server/push" \
+   -H 'Content-Type: application/json; charset=utf-8' \
+   -d "$(generate_post_data)" &>/dev/null
+#echo "FINISHED CURLING BARK OF NEW PUBLIC IP..."
+#else
+#echo "FAILED ON ADDING NEW PUBLIC IP TO CF FIREWALL RULE."
+fi
+fi
 #  else
 #    echo "LAST CHECK FAILED"
 fi
