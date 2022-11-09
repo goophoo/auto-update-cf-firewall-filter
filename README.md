@@ -11,3 +11,8 @@ If you blocked all the china's ip including youself the way like I do, so it is 
 1. Replace CF account info with yours;
 
 2. Configure job in your crontab.
+
+20221109
+---
+1. TIMEOUT ADDED IN CURL IF FAILED ON CURLING TO CLOUDFLARE;
+2. FIXED ISSUES ON IPv6.
