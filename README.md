@@ -15,6 +15,7 @@ If you blocked all the china's ip including youself the way like I do, so it is 
 20221110
 ---
 TRY 10 TIMES IF CURLING CLOUDFLARE FAILED.
+![Screenshot 2022-11-11 165123](https://user-images.githubusercontent.com/112747189/201303103-aa1712d6-f72e-44fa-8c57-5530399147f2.png)
 
 20221109
 ---
